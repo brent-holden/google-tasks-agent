@@ -1,0 +1,17 @@
+[Unit]
+Description=Google Tasks Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart={{HOME}}/.google-tasks-agent/venv/bin/google-tasks-agent
+Environment="HOME={{HOME}}"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+Environment="ANTHROPIC_API_KEY={{ANTHROPIC_API_KEY}}"
+Environment="GOOGLE_TASKS_AGENT_USER_EMAIL={{USER_EMAIL}}"
+StandardOutput=append:{{HOME}}/.google-tasks-agent/logs/systemd-stdout.log
+StandardError=append:{{HOME}}/.google-tasks-agent/logs/systemd-stderr.log
+
+[Install]
+WantedBy=default.target

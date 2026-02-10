@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.{{USERNAME}}.google-tasks-agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{HOME}}/.google-tasks-agent/venv/bin/google-tasks-agent</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>300</integer>
+
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+
+    <key>StandardOutPath</key>
+    <string>{{HOME}}/.google-tasks-agent/logs/launchd-stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>{{HOME}}/.google-tasks-agent/logs/launchd-stderr.log</string>
+
+    <key>WorkingDirectory</key>
+    <string>{{HOME}}</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>{{HOME}}</string>
+
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+
+        <key>ANTHROPIC_API_KEY</key>
+        <string>{{ANTHROPIC_API_KEY}}</string>
+
+        <key>GOOGLE_TASKS_AGENT_USER_EMAIL</key>
+        <string>{{USER_EMAIL}}</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>
