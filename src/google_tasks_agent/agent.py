@@ -209,12 +209,14 @@ async def run_agent(
                             "emails_scanned": {"type": "integer"},
                             "action_items_found": {"type": "integer"},
                             "tasks_created": {"type": "integer"},
+                            "duplicates_skipped": {"type": "integer"},
                             "secondary_tasks_created": {"type": "integer"},
                         },
                         "required": [
                             "emails_scanned",
                             "action_items_found",
                             "tasks_created",
+                            "duplicates_skipped",
                             "secondary_tasks_created",
                         ],
                     },
@@ -260,6 +262,7 @@ async def run_agent(
         f"Agent completed: scanned={summary.get('emails_scanned', 0)}, "
         f"items={summary.get('action_items_found', 0)}, "
         f"tasks={summary.get('tasks_created', 0)}, "
+        f"duplicates_skipped={summary.get('duplicates_skipped', 0)}, "
         f"secondary_tasks={summary.get('secondary_tasks_created', 0)}"
     )
 

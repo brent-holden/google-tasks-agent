@@ -195,6 +195,10 @@ The agent creates tasks automatically when any of these conditions are met:
 
 The agent skips newsletters, FYI notifications, action items assigned to other people, and generic automated alerts.
 
+### Duplicate reconciliation
+
+Before creating new tasks, the agent fetches all open tasks from your Google Tasks list and checks for duplicates. A new action item is considered a duplicate if an existing task's title overlaps significantly with the new action text, or if the existing task's notes reference the same email ID. Duplicates are skipped and reported in the run summary.
+
 ## Project structure
 
 ```

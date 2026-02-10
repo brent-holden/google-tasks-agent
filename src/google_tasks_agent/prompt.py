@@ -72,18 +72,29 @@ Only process messages and events whose IDs are NOT in the lists above."""
     # Task creation instructions
     if TASKS_ENABLED and not dry_run:
         task_instructions = f"""
-STEP 4: CREATE GOOGLE TASKS
-For each action item with create_task=true:
-1. First call tasks_list_tasklists to find the task list.
+STEP 4: RECONCILE AND CREATE GOOGLE TASKS
+1. Find the task list:
    - If TASK_LIST_ID is set, use it directly: "{TASKS_LIST_ID}"
-   - Otherwise, find the list named "{TASKS_LIST_NAME}" (case-insensitive)
+   - Otherwise, call tasks_list_tasklists and find the list named "{TASKS_LIST_NAME}" (case-insensitive)
    - Fall back to the first available list if not found
-2. Call tasks_create_task for each item with:
+2. Fetch existing tasks by calling tasks_list_tasks with the task list ID (showCompleted=false).
+   Paginate if needed to get all open tasks.
+3. For each action item with create_task=true, check for duplicates against the existing tasks:
+   - Compare the action text against existing task titles using fuzzy matching:
+     - Normalize both strings (lowercase, strip punctuation, collapse whitespace)
+     - A task is a DUPLICATE if ANY of these match:
+       a) The existing task title contains the action text (or vice versa)
+       b) The existing task notes contain the same email ID
+       c) The existing task title and the new action share 3+ significant words in common
+          (ignore common words like: the, a, an, to, for, and, or, of, in, on, with, from, by, up)
+   - If a duplicate is found, set create_task=false and task_created=false for that item
+     and count it as a skipped duplicate
+4. For each remaining action item (not skipped), call tasks_create_task with:
    - title: The action text (max 1000 chars)
    - notes: "Source: [subject]\\nPriority: [priority]\\n\\nOpen email: https://mail.google.com/mail/u/0/#all/[email_id]"
    - due: The due_date in RFC 3339 format (e.g., "2026-02-15T00:00:00.000Z") if available
    - taskListId: The task list ID found above
-3. Record which tasks were successfully created."""
+5. Record which tasks were created and which were skipped as duplicates."""
     elif dry_run:
         task_instructions = """
 STEP 4: SKIP TASK CREATION (DRY RUN MODE)
@@ -227,6 +238,7 @@ Return your results as a JSON object with this exact structure:
     "emails_scanned": 15,
     "action_items_found": 3,
     "tasks_created": 2,
+    "duplicates_skipped": 1,
     "secondary_tasks_created": 1
   }}
 }}
