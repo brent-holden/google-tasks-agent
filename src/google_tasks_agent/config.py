@@ -42,9 +42,9 @@ CALENDAR_ENABLED = (
 )
 
 # Secondary calendar for direct task creation from events
-FCTO_CALENDAR_ID = os.environ.get("GOOGLE_TASKS_AGENT_FCTO_CALENDAR_ID", "")
-FCTO_CALENDAR_ENABLED = (
-    os.environ.get("GOOGLE_TASKS_AGENT_FCTO_CALENDAR_ENABLED", "false").lower()
+SECONDARY_CALENDAR_ID = os.environ.get("GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID", "")
+SECONDARY_CALENDAR_ENABLED = (
+    os.environ.get("GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ENABLED", "false").lower()
     == "true"
 )
 

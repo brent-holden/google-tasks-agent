@@ -127,13 +127,13 @@ async def run_agent(
     # Load state
     state = load_state()
     seen_message_ids = state.get("seen_message_ids", [])
-    seen_fcto_event_ids = state.get("seen_fcto_event_ids", [])
+    seen_secondary_event_ids = state.get("seen_secondary_event_ids", [])
     logger.info(f"Loaded {len(seen_message_ids)} previously seen message IDs")
 
     # Build system prompt
     system_prompt = build_system_prompt(
         seen_message_ids=seen_message_ids,
-        seen_fcto_event_ids=seen_fcto_event_ids,
+        seen_secondary_event_ids=seen_secondary_event_ids,
         dry_run=dry_run,
         force=force,
     )
@@ -160,7 +160,7 @@ async def run_agent(
                         "type": "array",
                         "items": {"type": "string"},
                     },
-                    "processed_fcto_event_ids": {
+                    "processed_secondary_event_ids": {
                         "type": "array",
                         "items": {"type": "string"},
                     },
@@ -209,19 +209,19 @@ async def run_agent(
                             "emails_scanned": {"type": "integer"},
                             "action_items_found": {"type": "integer"},
                             "tasks_created": {"type": "integer"},
-                            "fcto_tasks_created": {"type": "integer"},
+                            "secondary_tasks_created": {"type": "integer"},
                         },
                         "required": [
                             "emails_scanned",
                             "action_items_found",
                             "tasks_created",
-                            "fcto_tasks_created",
+                            "secondary_tasks_created",
                         ],
                     },
                 },
                 "required": [
                     "processed_message_ids",
-                    "processed_fcto_event_ids",
+                    "processed_secondary_event_ids",
                     "action_items",
                     "summary",
                 ],
@@ -260,7 +260,7 @@ async def run_agent(
         f"Agent completed: scanned={summary.get('emails_scanned', 0)}, "
         f"items={summary.get('action_items_found', 0)}, "
         f"tasks={summary.get('tasks_created', 0)}, "
-        f"fcto_tasks={summary.get('fcto_tasks_created', 0)}"
+        f"secondary_tasks={summary.get('secondary_tasks_created', 0)}"
     )
 
     # Parse action items
@@ -284,13 +284,13 @@ async def run_agent(
 
         # Update state with new seen IDs
         new_msg_ids = result_data.get("processed_message_ids", [])
-        new_fcto_ids = result_data.get("processed_fcto_event_ids", [])
+        new_secondary_ids = result_data.get("processed_secondary_event_ids", [])
 
         state["seen_message_ids"] = list(
             set(seen_message_ids) | set(new_msg_ids)
         )
-        state["seen_fcto_event_ids"] = list(
-            set(seen_fcto_event_ids) | set(new_fcto_ids)
+        state["seen_secondary_event_ids"] = list(
+            set(seen_secondary_event_ids) | set(new_secondary_ids)
         )
         state["last_check"] = datetime.now(timezone.utc).isoformat()
         state["last_action_items"] = [item.to_dict() for item in action_items]

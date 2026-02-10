@@ -5,8 +5,8 @@ from datetime import datetime, timedelta, timezone
 from .config import (
     CALENDAR_ENABLED,
     CALENDAR_LOOKAHEAD_DAYS,
-    FCTO_CALENDAR_ENABLED,
-    FCTO_CALENDAR_ID,
+    SECONDARY_CALENDAR_ENABLED,
+    SECONDARY_CALENDAR_ID,
     GEMINI_NOTES_SENDER,
     HIGH_PRIORITY_SENDERS,
     MAX_EMAILS,
@@ -38,7 +38,7 @@ def _extract_user_names(email_address: str) -> list[str]:
 
 def build_system_prompt(
     seen_message_ids: list[str],
-    seen_fcto_event_ids: list[str],
+    seen_secondary_event_ids: list[str],
     dry_run: bool = False,
     force: bool = False,
 ) -> str:
@@ -60,12 +60,12 @@ def build_system_prompt(
         seen_filter = "FORCE MODE: Process ALL messages regardless of whether they have been seen before."
     else:
         seen_msg_str = ", ".join(f'"{mid}"' for mid in seen_message_ids[-200:])
-        seen_fcto_str = ", ".join(f'"{eid}"' for eid in seen_fcto_event_ids[-100:])
+        seen_secondary_str = ", ".join(f'"{eid}"' for eid in seen_secondary_event_ids[-100:])
         seen_filter = f"""PREVIOUSLY SEEN MESSAGE IDS (skip these):
 [{seen_msg_str}]
 
-PREVIOUSLY SEEN FCTO EVENT IDS (skip these):
-[{seen_fcto_str}]
+PREVIOUSLY SEEN SECONDARY CALENDAR EVENT IDS (skip these):
+[{seen_secondary_str}]
 
 Only process messages and events whose IDs are NOT in the lists above."""
 
@@ -102,15 +102,15 @@ B. Fetch upcoming calendar events for context:
    - These events provide context for email analysis (meeting prep, deadlines, etc.)
 """
 
-    fcto_instructions = ""
-    if FCTO_CALENDAR_ENABLED and FCTO_CALENDAR_ID:
-        fcto_instructions = f"""
-C. Fetch FCTO Management Team Calendar events:
-   - Call calendar_list_events with calendarId="{FCTO_CALENDAR_ID}", timeMin="{time_min}", timeMax="{time_max}", maxResults=50
-   - For each NEW event (not in the seen FCTO event IDs list):
+    secondary_cal_instructions = ""
+    if SECONDARY_CALENDAR_ENABLED and SECONDARY_CALENDAR_ID:
+        secondary_cal_instructions = f"""
+C. Fetch secondary calendar events:
+   - Call calendar_list_events with calendarId="{SECONDARY_CALENDAR_ID}", timeMin="{time_min}", timeMax="{time_max}", maxResults=50
+   - For each NEW event (not in the seen secondary calendar event IDs list):
      - Skip events with titles containing PTO, vacation, out of office, or OOO patterns
      - Create a Google Task with the event title and due date set to the event start date
-     - Notes should include "Source: FCTO Management Team Calendar\\nPriority: MEDIUM"
+     - Notes should include "Source: Secondary Calendar\\nPriority: MEDIUM"
 """
 
     starred_instructions = ""
@@ -134,7 +134,7 @@ STEP 1: GATHER DATA
 A. Fetch recent inbox emails:
    - Call gmail_search_messages with query="in:inbox" and maxResults={MAX_EMAILS}
    - Read each NEW message (not in seen IDs) with gmail_read_message
-{calendar_instructions}{fcto_instructions}
+{calendar_instructions}{secondary_cal_instructions}
 D. Fetch Gemini meeting notes:
    - Call gmail_search_messages with query="from:{GEMINI_NOTES_SENDER}" and maxResults=10
    - Read each NEW message with gmail_read_message
@@ -196,15 +196,15 @@ Do NOT create action items for:
 - Already-completed items
 - Generic Concur alerts (e.g., "expense report approved", "payment processed")
 
-STEP 3: PROCESS FCTO CALENDAR EVENTS
-{fcto_instructions if FCTO_CALENDAR_ENABLED else "FCTO calendar processing is disabled. Skip this step."}
+STEP 3: PROCESS SECONDARY CALENDAR EVENTS
+{secondary_cal_instructions if SECONDARY_CALENDAR_ENABLED else "Secondary calendar processing is disabled. Skip this step."}
 {task_instructions}
 
 STEP 5: RETURN RESULTS
 Return your results as a JSON object with this exact structure:
 {{
   "processed_message_ids": ["id1", "id2", ...],
-  "processed_fcto_event_ids": ["eid1", "eid2", ...],
+  "processed_secondary_event_ids": ["eid1", "eid2", ...],
   "action_items": [
     {{
       "id": "email_id",
@@ -223,7 +223,7 @@ Return your results as a JSON object with this exact structure:
     "emails_scanned": 15,
     "action_items_found": 3,
     "tasks_created": 2,
-    "fcto_tasks_created": 1
+    "secondary_tasks_created": 1
   }}
 }}
 

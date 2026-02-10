@@ -18,7 +18,7 @@ def load_state() -> dict:
 
     return {
         "seen_message_ids": [],
-        "seen_fcto_event_ids": [],
+        "seen_secondary_event_ids": [],
         "last_check": None,
         "last_action_items": [],
     }
@@ -32,8 +32,8 @@ def save_state(state: dict) -> None:
     if len(state.get("seen_message_ids", [])) > MAX_SEEN_IDS:
         state["seen_message_ids"] = state["seen_message_ids"][-MAX_SEEN_IDS:]
 
-    if len(state.get("seen_fcto_event_ids", [])) > MAX_SEEN_IDS:
-        state["seen_fcto_event_ids"] = state["seen_fcto_event_ids"][-MAX_SEEN_IDS:]
+    if len(state.get("seen_secondary_event_ids", [])) > MAX_SEEN_IDS:
+        state["seen_secondary_event_ids"] = state["seen_secondary_event_ids"][-MAX_SEEN_IDS:]
 
     # Write to temp file and atomically rename to prevent corruption
     with tempfile.NamedTemporaryFile(
