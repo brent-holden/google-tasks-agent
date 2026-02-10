@@ -36,6 +36,18 @@
         <key>ANTHROPIC_API_KEY</key>
         <string>{{ANTHROPIC_API_KEY}}</string>
 
+        <key>CLAUDE_CODE_USE_VERTEX</key>
+        <string>{{CLAUDE_CODE_USE_VERTEX}}</string>
+
+        <key>ANTHROPIC_VERTEX_REGION</key>
+        <string>{{ANTHROPIC_VERTEX_REGION}}</string>
+
+        <key>ANTHROPIC_VERTEX_PROJECT_ID</key>
+        <string>{{ANTHROPIC_VERTEX_PROJECT_ID}}</string>
+
+        <key>GOOGLE_APPLICATION_CREDENTIALS</key>
+        <string>{{HOME}}/.config/gcloud/application_default_credentials.json</string>
+
         <key>GOOGLE_TASKS_AGENT_USER_EMAIL</key>
         <string>{{USER_EMAIL}}</string>
     </dict>

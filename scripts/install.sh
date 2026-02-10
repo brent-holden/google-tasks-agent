@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Google Tasks Agent - Installation Script
 # Supports macOS (launchd) and Linux (systemd)
+# Supports both Anthropic API key and Google Vertex AI authentication
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -49,19 +50,59 @@ if [ ! -f "$MCP_SERVER_PATH" ]; then
     echo ""
 fi
 
-# Prompt for API key
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-    echo "Enter your Anthropic API key (or press Enter to skip):"
-    read -r ANTHROPIC_API_KEY
-    if [ -z "$ANTHROPIC_API_KEY" ]; then
-        echo "Warning: No API key provided. Set ANTHROPIC_API_KEY before running."
+# --- Authentication setup ---
+
+# Auto-detect Vertex AI from environment
+VERTEX_REGION="${ANTHROPIC_VERTEX_REGION:-}"
+VERTEX_PROJECT="${ANTHROPIC_VERTEX_PROJECT_ID:-}"
+USE_VERTEX="${CLAUDE_CODE_USE_VERTEX:-}"
+API_KEY="${ANTHROPIC_API_KEY:-}"
+
+if [ -n "$USE_VERTEX" ] && [ -n "$VERTEX_REGION" ] && [ -n "$VERTEX_PROJECT" ]; then
+    echo "Detected Vertex AI configuration from environment:"
+    echo "  Region:  $VERTEX_REGION"
+    echo "  Project: $VERTEX_PROJECT"
+    AUTH_MODE="vertex"
+elif [ -n "$API_KEY" ]; then
+    echo "Detected Anthropic API key from environment."
+    AUTH_MODE="apikey"
+else
+    echo "Choose authentication method:"
+    echo "  1) Google Vertex AI (CLAUDE_CODE_USE_VERTEX)"
+    echo "  2) Anthropic API key (ANTHROPIC_API_KEY)"
+    read -rp "Enter 1 or 2: " AUTH_CHOICE
+
+    if [ "$AUTH_CHOICE" = "1" ]; then
+        AUTH_MODE="vertex"
+        USE_VERTEX="1"
+        read -rp "Vertex AI region (e.g. us-east5): " VERTEX_REGION
+        read -rp "Vertex AI project ID: " VERTEX_PROJECT
+
+        if [ -z "$VERTEX_REGION" ] || [ -z "$VERTEX_PROJECT" ]; then
+            echo "Error: Region and project ID are required for Vertex AI."
+            exit 1
+        fi
+
+        # Check for ADC
+        ADC_PATH="$HOME/.config/gcloud/application_default_credentials.json"
+        if [ ! -f "$ADC_PATH" ]; then
+            echo "Warning: Application Default Credentials not found at $ADC_PATH"
+            echo "Run: gcloud auth application-default login"
+        fi
+    else
+        AUTH_MODE="apikey"
+        read -rp "Anthropic API key: " API_KEY
+        if [ -z "$API_KEY" ]; then
+            echo "Warning: No API key provided. Set ANTHROPIC_API_KEY before running."
+        fi
     fi
 fi
 
+echo ""
+
 # Prompt for user email
 if [ -z "${GOOGLE_TASKS_AGENT_USER_EMAIL:-}" ]; then
-    echo "Enter your email address (for name matching in Gemini notes, or press Enter to skip):"
-    read -r USER_EMAIL
+    read -rp "Your email address (for name matching in Gemini notes, or Enter to skip): " USER_EMAIL
 else
     USER_EMAIL="$GOOGLE_TASKS_AGENT_USER_EMAIL"
 fi
@@ -104,7 +145,10 @@ if [ "$OS" = "Darwin" ]; then
     # Generate plist from template
     sed -e "s|{{HOME}}|$HOME|g" \
         -e "s|{{USERNAME}}|$USERNAME|g" \
-        -e "s|{{ANTHROPIC_API_KEY}}|${ANTHROPIC_API_KEY:-}|g" \
+        -e "s|{{ANTHROPIC_API_KEY}}|${API_KEY:-}|g" \
+        -e "s|{{CLAUDE_CODE_USE_VERTEX}}|${USE_VERTEX:-}|g" \
+        -e "s|{{ANTHROPIC_VERTEX_REGION}}|${VERTEX_REGION:-}|g" \
+        -e "s|{{ANTHROPIC_VERTEX_PROJECT_ID}}|${VERTEX_PROJECT:-}|g" \
         -e "s|{{USER_EMAIL}}|${USER_EMAIL:-}|g" \
         "$TEMPLATE" > "$PLIST_PATH"
 
@@ -133,7 +177,10 @@ elif [ "$OS" = "Linux" ]; then
 
     # Generate service file from template
     sed -e "s|{{HOME}}|$HOME|g" \
-        -e "s|{{ANTHROPIC_API_KEY}}|${ANTHROPIC_API_KEY:-}|g" \
+        -e "s|{{ANTHROPIC_API_KEY}}|${API_KEY:-}|g" \
+        -e "s|{{CLAUDE_CODE_USE_VERTEX}}|${USE_VERTEX:-}|g" \
+        -e "s|{{ANTHROPIC_VERTEX_REGION}}|${VERTEX_REGION:-}|g" \
+        -e "s|{{ANTHROPIC_VERTEX_PROJECT_ID}}|${VERTEX_PROJECT:-}|g" \
         -e "s|{{USER_EMAIL}}|${USER_EMAIL:-}|g" \
         "$SERVICE_TEMPLATE" > "$SYSTEMD_DIR/google-tasks-agent.service"
 
@@ -155,9 +202,14 @@ fi
 echo ""
 echo "=== Installation Complete ==="
 echo ""
-echo "Configuration directory: $CONFIG_DIR"
-echo "Logs directory:          $LOG_DIR"
-echo "Action items log:        $CONFIG_DIR/action-items.md"
+if [ "$AUTH_MODE" = "vertex" ]; then
+    echo "Auth mode:   Vertex AI ($VERTEX_REGION / $VERTEX_PROJECT)"
+else
+    echo "Auth mode:   Anthropic API key"
+fi
+echo "Config dir:  $CONFIG_DIR"
+echo "Logs dir:    $LOG_DIR"
+echo "Action log:  $CONFIG_DIR/action-items.md"
 echo ""
 echo "To run manually:    $VENV_DIR/bin/google-tasks-agent"
 echo "To dry run:         $VENV_DIR/bin/google-tasks-agent --dry-run"

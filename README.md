@@ -18,7 +18,7 @@ Every 5 minutes (when scheduled), the agent:
 - **Python 3.11+**
 - **Node.js** (for the MCP server)
 - **Claude Code CLI** (`npm install -g @anthropic-ai/claude-code`)
-- **Anthropic API key** (`ANTHROPIC_API_KEY`)
+- **Claude API access** — either an Anthropic API key (`ANTHROPIC_API_KEY`) or Google Vertex AI (`CLAUDE_CODE_USE_VERTEX` + `ANTHROPIC_VERTEX_REGION` + `ANTHROPIC_VERTEX_PROJECT_ID`)
 - **google-mcp** server built and authenticated (see [Setup](#setup) below)
 
 ## Setup
@@ -58,7 +58,17 @@ cd ~/Code/google-tasks-agent
 scripts/install.sh
 ```
 
-This creates a virtual environment at `~/.google-tasks-agent/venv/`, installs the package, and sets up a launchd agent (macOS) or systemd timer (Linux) to run every 5 minutes.
+The install script auto-detects Vertex AI configuration from your environment. If neither Vertex nor an API key is set, it will prompt you to choose. It creates a virtual environment at `~/.google-tasks-agent/venv/`, installs the package, and sets up a launchd agent (macOS) or systemd timer (Linux) to run every 5 minutes.
+
+For Vertex AI, you can also pass the config explicitly:
+
+```bash
+CLAUDE_CODE_USE_VERTEX=1 \
+ANTHROPIC_VERTEX_REGION=us-east5 \
+ANTHROPIC_VERTEX_PROJECT_ID=your-project-id \
+GOOGLE_TASKS_AGENT_USER_EMAIL=you@example.com \
+scripts/install.sh
+```
 
 **Option B: Manual install**
 
@@ -127,9 +137,21 @@ This stops and removes the scheduled agent and deletes the virtual environment. 
 
 All configuration is via environment variables. Set them in your shell profile, or they'll be baked into the launchd/systemd config by the install script.
 
+### Authentication (one of the two options)
+
 | Variable | Default | Description |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | *(required)* | Anthropic API key |
+| `ANTHROPIC_API_KEY` | *(empty)* | Anthropic API key (direct API access) |
+| `CLAUDE_CODE_USE_VERTEX` | *(empty)* | Set to `1` to use Google Vertex AI |
+| `ANTHROPIC_VERTEX_REGION` | *(empty)* | Vertex AI region (e.g. `us-east5`) |
+| `ANTHROPIC_VERTEX_PROJECT_ID` | *(empty)* | Vertex AI project ID |
+
+Vertex AI also requires [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) (`gcloud auth application-default login`).
+
+### Agent settings
+
+| Variable | Default | Description |
+|---|---|---|
 | `GOOGLE_TASKS_AGENT_MCP_SERVER_PATH` | `~/Code/google-mcp/dist/index.js` | Path to the compiled MCP server |
 | `GOOGLE_TASKS_AGENT_USER_EMAIL` | *(empty)* | Your email address, used to match your name in Gemini meeting notes |
 | `GOOGLE_TASKS_AGENT_MAX_EMAILS` | `20` | Number of inbox emails to fetch per run |
