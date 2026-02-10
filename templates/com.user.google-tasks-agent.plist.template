@@ -50,6 +50,12 @@
 
         <key>GOOGLE_TASKS_AGENT_USER_EMAIL</key>
         <string>{{USER_EMAIL}}</string>
+
+        <key>GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID</key>
+        <string>{{SECONDARY_CALENDAR_ID}}</string>
+
+        <key>GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ENABLED</key>
+        <string>{{SECONDARY_CALENDAR_ENABLED}}</string>
     </dict>
 
     <key>RunAtLoad</key>

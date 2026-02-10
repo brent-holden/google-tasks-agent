@@ -14,6 +14,8 @@ Environment="ANTHROPIC_VERTEX_REGION={{ANTHROPIC_VERTEX_REGION}}"
 Environment="ANTHROPIC_VERTEX_PROJECT_ID={{ANTHROPIC_VERTEX_PROJECT_ID}}"
 Environment="GOOGLE_APPLICATION_CREDENTIALS={{HOME}}/.config/gcloud/application_default_credentials.json"
 Environment="GOOGLE_TASKS_AGENT_USER_EMAIL={{USER_EMAIL}}"
+Environment="GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID={{SECONDARY_CALENDAR_ID}}"
+Environment="GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ENABLED={{SECONDARY_CALENDAR_ENABLED}}"
 StandardOutput=append:{{HOME}}/.google-tasks-agent/logs/systemd-stdout.log
 StandardError=append:{{HOME}}/.google-tasks-agent/logs/systemd-stderr.log
 

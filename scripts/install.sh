@@ -44,6 +44,7 @@ fi
 
 # Check MCP server exists
 MCP_SERVER_PATH="${GOOGLE_TASKS_AGENT_MCP_SERVER_PATH:-$HOME/Code/google-mcp/dist/index.js}"
+MCP_SERVER_DIR="$(dirname "$(dirname "$MCP_SERVER_PATH")")"
 if [ ! -f "$MCP_SERVER_PATH" ]; then
     echo "Warning: MCP server not found at $MCP_SERVER_PATH"
     echo "Build it first: cd ~/Code/google-mcp && npm run build"
@@ -108,6 +109,101 @@ else
 fi
 
 echo ""
+
+# --- Calendar discovery ---
+
+SECONDARY_CALENDAR_ID="${GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID:-}"
+SECONDARY_CALENDAR_ENABLED="false"
+
+TOKENS_FILE="$MCP_SERVER_DIR/tokens.json"
+CREDS_FILE="$MCP_SERVER_DIR/credentials/client_credentials.json"
+
+if [ -f "$TOKENS_FILE" ] && [ -f "$CREDS_FILE" ]; then
+    echo "Fetching your Google Calendars..."
+    echo ""
+
+    # Use the MCP server's googleapis and auth to list calendars
+    CALENDARS_JSON=$(node -e "
+const {google} = require('$MCP_SERVER_DIR/node_modules/googleapis');
+const fs = require('fs');
+const tokens = JSON.parse(fs.readFileSync('$TOKENS_FILE'));
+const raw = JSON.parse(fs.readFileSync('$CREDS_FILE'));
+const c = raw.installed || raw.web;
+const auth = new google.auth.OAuth2(c.client_id, c.client_secret);
+auth.setCredentials(tokens);
+const cal = google.calendar({version: 'v3', auth});
+cal.calendarList.list({maxResults: 100}).then(r => {
+    const items = (r.data.items || []).map(c => ({
+        id: c.id,
+        summary: c.summary || c.id,
+        primary: c.primary || false,
+        accessRole: c.accessRole
+    }));
+    console.log(JSON.stringify(items));
+}).catch(e => {
+    console.error('Failed to list calendars: ' + e.message);
+    console.log('[]');
+});
+" 2>/dev/null) || CALENDARS_JSON="[]"
+
+    CAL_COUNT=$(echo "$CALENDARS_JSON" | node -e "
+const d = require('fs').readFileSync('/dev/stdin','utf8');
+const items = JSON.parse(d);
+console.log(items.length);
+" 2>/dev/null) || CAL_COUNT=0
+
+    if [ "$CAL_COUNT" -gt 0 ]; then
+        echo "Available calendars:"
+        echo ""
+
+        # Display numbered list
+        echo "$CALENDARS_JSON" | node -e "
+const d = require('fs').readFileSync('/dev/stdin','utf8');
+const items = JSON.parse(d);
+items.forEach((c, i) => {
+    const primary = c.primary ? ' (primary)' : '';
+    const role = c.accessRole === 'owner' ? '' : ' [' + c.accessRole + ']';
+    console.log('  ' + (i + 1) + ') ' + c.summary + primary + role);
+});
+"
+
+        echo ""
+        echo "The primary calendar is always used for context."
+        echo "You can optionally select a secondary calendar to auto-create tasks from its events."
+        echo ""
+        read -rp "Secondary calendar number (or Enter to skip): " CAL_CHOICE
+
+        if [ -n "$CAL_CHOICE" ] && [ "$CAL_CHOICE" -gt 0 ] 2>/dev/null && [ "$CAL_CHOICE" -le "$CAL_COUNT" ] 2>/dev/null; then
+            SECONDARY_CALENDAR_ID=$(echo "$CALENDARS_JSON" | node -e "
+const d = require('fs').readFileSync('/dev/stdin','utf8');
+const items = JSON.parse(d);
+const idx = parseInt(process.argv[1]) - 1;
+console.log(items[idx].id);
+" "$CAL_CHOICE" 2>/dev/null) || SECONDARY_CALENDAR_ID=""
+
+            if [ -n "$SECONDARY_CALENDAR_ID" ]; then
+                SECONDARY_CAL_NAME=$(echo "$CALENDARS_JSON" | node -e "
+const d = require('fs').readFileSync('/dev/stdin','utf8');
+const items = JSON.parse(d);
+const idx = parseInt(process.argv[1]) - 1;
+console.log(items[idx].summary);
+" "$CAL_CHOICE" 2>/dev/null) || SECONDARY_CAL_NAME="$SECONDARY_CALENDAR_ID"
+
+                SECONDARY_CALENDAR_ENABLED="true"
+                echo "Selected: $SECONDARY_CAL_NAME"
+            fi
+        else
+            echo "No secondary calendar selected."
+        fi
+    else
+        echo "Could not fetch calendars. You can set GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID later."
+    fi
+else
+    echo "Skipping calendar discovery (MCP server not authenticated yet)."
+    echo "You can set GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID later."
+fi
+
+echo ""
 echo "Creating directories..."
 mkdir -p "$CONFIG_DIR"
 mkdir -p "$LOG_DIR"
@@ -150,6 +246,8 @@ if [ "$OS" = "Darwin" ]; then
         -e "s|{{ANTHROPIC_VERTEX_REGION}}|${VERTEX_REGION:-}|g" \
         -e "s|{{ANTHROPIC_VERTEX_PROJECT_ID}}|${VERTEX_PROJECT:-}|g" \
         -e "s|{{USER_EMAIL}}|${USER_EMAIL:-}|g" \
+        -e "s|{{SECONDARY_CALENDAR_ID}}|${SECONDARY_CALENDAR_ID:-}|g" \
+        -e "s|{{SECONDARY_CALENDAR_ENABLED}}|${SECONDARY_CALENDAR_ENABLED}|g" \
         "$TEMPLATE" > "$PLIST_PATH"
 
     # Load the agent
@@ -182,6 +280,8 @@ elif [ "$OS" = "Linux" ]; then
         -e "s|{{ANTHROPIC_VERTEX_REGION}}|${VERTEX_REGION:-}|g" \
         -e "s|{{ANTHROPIC_VERTEX_PROJECT_ID}}|${VERTEX_PROJECT:-}|g" \
         -e "s|{{USER_EMAIL}}|${USER_EMAIL:-}|g" \
+        -e "s|{{SECONDARY_CALENDAR_ID}}|${SECONDARY_CALENDAR_ID:-}|g" \
+        -e "s|{{SECONDARY_CALENDAR_ENABLED}}|${SECONDARY_CALENDAR_ENABLED}|g" \
         "$SERVICE_TEMPLATE" > "$SYSTEMD_DIR/google-tasks-agent.service"
 
     # Copy timer file
@@ -203,13 +303,18 @@ echo ""
 echo "=== Installation Complete ==="
 echo ""
 if [ "$AUTH_MODE" = "vertex" ]; then
-    echo "Auth mode:   Vertex AI ($VERTEX_REGION / $VERTEX_PROJECT)"
+    echo "Auth mode:            Vertex AI ($VERTEX_REGION / $VERTEX_PROJECT)"
 else
-    echo "Auth mode:   Anthropic API key"
+    echo "Auth mode:            Anthropic API key"
 fi
-echo "Config dir:  $CONFIG_DIR"
-echo "Logs dir:    $LOG_DIR"
-echo "Action log:  $CONFIG_DIR/action-items.md"
+if [ "$SECONDARY_CALENDAR_ENABLED" = "true" ]; then
+    echo "Secondary calendar:   $SECONDARY_CALENDAR_ID"
+else
+    echo "Secondary calendar:   (none)"
+fi
+echo "Config dir:           $CONFIG_DIR"
+echo "Logs dir:             $LOG_DIR"
+echo "Action log:           $CONFIG_DIR/action-items.md"
 echo ""
 echo "To run manually:    $VENV_DIR/bin/google-tasks-agent"
 echo "To dry run:         $VENV_DIR/bin/google-tasks-agent --dry-run"
