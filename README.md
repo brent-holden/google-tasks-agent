@@ -160,8 +160,8 @@ Vertex AI also requires [Application Default Credentials](https://cloud.google.c
 | `GOOGLE_TASKS_AGENT_TASK_LIST_ID` | *(empty)* | Direct task list ID (overrides name lookup) |
 | `GOOGLE_TASKS_AGENT_CALENDAR_ENABLED` | `true` | Include calendar events as context |
 | `GOOGLE_TASKS_AGENT_CALENDAR_DAYS` | `28` | Number of days to look ahead in calendar |
-| `GOOGLE_TASKS_AGENT_FCTO_CALENDAR_ID` | *(preset)* | Calendar ID for direct task creation from events |
-| `GOOGLE_TASKS_AGENT_FCTO_CALENDAR_ENABLED` | `true` | Enable FCTO calendar task creation |
+| `GOOGLE_TASKS_AGENT_FCTO_CALENDAR_ID` | *(empty)* | Secondary calendar ID for direct task creation from events |
+| `GOOGLE_TASKS_AGENT_FCTO_CALENDAR_ENABLED` | `false` | Enable secondary calendar task creation (requires calendar ID) |
 | `GOOGLE_TASKS_AGENT_STARRED_ENABLED` | `true` | Process starred emails |
 | `GOOGLE_TASKS_AGENT_MAX_STARRED` | `20` | Number of starred emails to fetch |
 

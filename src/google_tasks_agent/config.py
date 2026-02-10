@@ -41,13 +41,10 @@ CALENDAR_ENABLED = (
     os.environ.get("GOOGLE_TASKS_AGENT_CALENDAR_ENABLED", "true").lower() == "true"
 )
 
-# FCTO Management Team Calendar
-FCTO_CALENDAR_ID = os.environ.get(
-    "GOOGLE_TASKS_AGENT_FCTO_CALENDAR_ID",
-    "c_8256e0a43b42368e02a70e7b825fcc2a3b1457ffeedb45ea3e6f2c65249b4153@group.calendar.google.com",
-)
+# Secondary calendar for direct task creation from events
+FCTO_CALENDAR_ID = os.environ.get("GOOGLE_TASKS_AGENT_FCTO_CALENDAR_ID", "")
 FCTO_CALENDAR_ENABLED = (
-    os.environ.get("GOOGLE_TASKS_AGENT_FCTO_CALENDAR_ENABLED", "true").lower()
+    os.environ.get("GOOGLE_TASKS_AGENT_FCTO_CALENDAR_ENABLED", "false").lower()
     == "true"
 )
 
