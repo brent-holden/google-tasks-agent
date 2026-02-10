@@ -58,15 +58,22 @@ cd ~/Code/google-tasks-agent
 scripts/install.sh
 ```
 
-The install script auto-detects Vertex AI configuration from your environment. If neither Vertex nor an API key is set, it will prompt you to choose. It creates a virtual environment at `~/.google-tasks-agent/venv/`, installs the package, and sets up a launchd agent (macOS) or systemd timer (Linux) to run every 5 minutes.
+The install script will:
 
-For Vertex AI, you can also pass the config explicitly:
+1. **Detect authentication** — auto-detects Vertex AI or API key from your environment, or prompts you to choose
+2. **Ask for your email** — used to match your name in Gemini meeting note action items
+3. **Discover calendars** — uses the MCP server's existing Google OAuth tokens to fetch your calendars and lets you pick an optional secondary calendar for automatic task creation from its events
+4. **Install the package** — creates a virtual environment at `~/.google-tasks-agent/venv/`
+5. **Set up scheduling** — configures a launchd agent (macOS) or systemd timer (Linux) to run every 5 minutes
+
+For non-interactive install, pass config via environment variables:
 
 ```bash
 CLAUDE_CODE_USE_VERTEX=1 \
 ANTHROPIC_VERTEX_REGION=us-east5 \
 ANTHROPIC_VERTEX_PROJECT_ID=your-project-id \
 GOOGLE_TASKS_AGENT_USER_EMAIL=you@example.com \
+GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID=your-calendar-id@group.calendar.google.com \
 scripts/install.sh
 ```
 
