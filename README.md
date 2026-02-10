@@ -114,6 +114,15 @@ systemctl --user stop google-tasks-agent.timer
 systemctl --user disable google-tasks-agent.timer
 ```
 
+### Uninstalling
+
+```bash
+cd ~/Code/google-tasks-agent
+scripts/uninstall.sh
+```
+
+This stops and removes the scheduled agent and deletes the virtual environment. Your state, action items log, and logs are preserved — delete `~/.google-tasks-agent/` manually to remove them.
+
 ## Configuration
 
 All configuration is via environment variables. Set them in your shell profile, or they'll be baked into the launchd/systemd config by the install script.
@@ -177,5 +186,6 @@ google-tasks-agent/
 │   ├── google-tasks-agent.service.template          # Linux systemd service
 │   └── google-tasks-agent.timer.template            # Linux systemd timer
 └── scripts/
-    └── install.sh                    # Cross-platform installer
+    ├── install.sh                    # Cross-platform installer
+    └── uninstall.sh                  # Cross-platform uninstaller
 ```
