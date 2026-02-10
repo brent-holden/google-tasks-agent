@@ -204,14 +204,16 @@ console.log(items[idx].id);
             fi
 
             # Check for duplicates
-            for existing in "${SELECTED_IDS[@]}"; do
-                if [ "$existing" = "$CAL_ID" ]; then
-                    echo "  Already selected. Choose a different calendar."
-                    CAL_ID=""
-                    break
-                fi
-            done
-            [ -z "$CAL_ID" ] && continue
+            if [ "$SELECTED_COUNT" -gt 0 ]; then
+                for existing in "${SELECTED_IDS[@]}"; do
+                    if [ "$existing" = "$CAL_ID" ]; then
+                        echo "  Already selected. Choose a different calendar."
+                        CAL_ID=""
+                        break
+                    fi
+                done
+                [ -z "$CAL_ID" ] && continue
+            fi
 
             CAL_NAME=$(echo "$CALENDARS_JSON" | node -e "
 const d = require('fs').readFileSync('/dev/stdin','utf8');
