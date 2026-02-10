@@ -6,7 +6,7 @@ AI-powered agent that scans Gmail and Google Calendar for action items and creat
 
 Every 5 minutes (when scheduled), the agent:
 
-1. Connects to the [google-mcp](../google-mcp) server for Gmail, Calendar, and Tasks access
+1. Connects to the [google-mcp](https://github.com/brent-holden/google-mcp) server for Gmail, Calendar, and Tasks access
 2. Fetches recent inbox emails, Gemini meeting notes, starred emails, and upcoming calendar events
 3. Sends everything to Claude for analysis — it identifies action items, assigns priorities, infers due dates, and correlates emails with calendar events
 4. Creates Google Tasks for high-priority items, starred emails, meeting action items, and anything with a deadline
