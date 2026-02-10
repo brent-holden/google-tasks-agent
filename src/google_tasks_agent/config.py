@@ -41,10 +41,13 @@ CALENDAR_ENABLED = (
     os.environ.get("GOOGLE_TASKS_AGENT_CALENDAR_ENABLED", "true").lower() == "true"
 )
 
-# Secondary calendar for direct task creation from events
-SECONDARY_CALENDAR_ID = os.environ.get("GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID", "")
-SECONDARY_CALENDAR_ENABLED = (
-    os.environ.get("GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ENABLED", "false").lower()
+# Secondary calendars for direct task creation from events (comma-separated)
+_secondary_ids_raw = os.environ.get("GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_IDS", "")
+SECONDARY_CALENDAR_IDS: list[str] = [
+    cid.strip() for cid in _secondary_ids_raw.split(",") if cid.strip()
+]
+SECONDARY_CALENDARS_ENABLED = (
+    os.environ.get("GOOGLE_TASKS_AGENT_SECONDARY_CALENDARS_ENABLED", "false").lower()
     == "true"
 )
 

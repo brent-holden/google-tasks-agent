@@ -112,13 +112,14 @@ echo ""
 
 # --- Calendar discovery ---
 
-SECONDARY_CALENDAR_ID="${GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID:-}"
-SECONDARY_CALENDAR_ENABLED="false"
+SECONDARY_CALENDAR_IDS="${GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_IDS:-}"
+SECONDARY_CALENDARS_ENABLED="false"
+MAX_SECONDARY_CALENDARS=5
 
 TOKENS_FILE="$MCP_SERVER_DIR/tokens.json"
 CREDS_FILE="$MCP_SERVER_DIR/credentials/client_credentials.json"
 
-if [ -f "$TOKENS_FILE" ] && [ -f "$CREDS_FILE" ]; then
+if [ -z "$SECONDARY_CALENDAR_IDS" ] && [ -f "$TOKENS_FILE" ] && [ -f "$CREDS_FILE" ]; then
     echo "Fetching your Google Calendars..."
     echo ""
 
@@ -169,38 +170,83 @@ items.forEach((c, i) => {
 
         echo ""
         echo "The primary calendar is always used for context."
-        echo "You can optionally select a secondary calendar to auto-create tasks from its events."
+        echo "You can select up to $MAX_SECONDARY_CALENDARS additional calendars to auto-create tasks from their events."
+        echo "Enter calendar numbers one at a time. Press Enter when done."
         echo ""
-        read -rp "Secondary calendar number (or Enter to skip): " CAL_CHOICE
 
-        if [ -n "$CAL_CHOICE" ] && [ "$CAL_CHOICE" -gt 0 ] 2>/dev/null && [ "$CAL_CHOICE" -le "$CAL_COUNT" ] 2>/dev/null; then
-            SECONDARY_CALENDAR_ID=$(echo "$CALENDARS_JSON" | node -e "
+        SELECTED_IDS=()
+        SELECTED_NAMES=()
+        SELECTED_COUNT=0
+
+        while [ "$SELECTED_COUNT" -lt "$MAX_SECONDARY_CALENDARS" ]; do
+            REMAINING=$((MAX_SECONDARY_CALENDARS - SELECTED_COUNT))
+            read -rp "Add calendar number ($REMAINING remaining, Enter to finish): " CAL_CHOICE
+
+            # Empty input = done selecting
+            [ -z "$CAL_CHOICE" ] && break
+
+            # Validate number
+            if ! [ "$CAL_CHOICE" -gt 0 ] 2>/dev/null || ! [ "$CAL_CHOICE" -le "$CAL_COUNT" ] 2>/dev/null; then
+                echo "  Invalid choice. Enter a number between 1 and $CAL_COUNT."
+                continue
+            fi
+
+            CAL_ID=$(echo "$CALENDARS_JSON" | node -e "
 const d = require('fs').readFileSync('/dev/stdin','utf8');
 const items = JSON.parse(d);
 const idx = parseInt(process.argv[1]) - 1;
 console.log(items[idx].id);
-" "$CAL_CHOICE" 2>/dev/null) || SECONDARY_CALENDAR_ID=""
+" "$CAL_CHOICE" 2>/dev/null) || CAL_ID=""
 
-            if [ -n "$SECONDARY_CALENDAR_ID" ]; then
-                SECONDARY_CAL_NAME=$(echo "$CALENDARS_JSON" | node -e "
+            if [ -z "$CAL_ID" ]; then
+                echo "  Failed to read calendar. Try again."
+                continue
+            fi
+
+            # Check for duplicates
+            for existing in "${SELECTED_IDS[@]}"; do
+                if [ "$existing" = "$CAL_ID" ]; then
+                    echo "  Already selected. Choose a different calendar."
+                    CAL_ID=""
+                    break
+                fi
+            done
+            [ -z "$CAL_ID" ] && continue
+
+            CAL_NAME=$(echo "$CALENDARS_JSON" | node -e "
 const d = require('fs').readFileSync('/dev/stdin','utf8');
 const items = JSON.parse(d);
 const idx = parseInt(process.argv[1]) - 1;
 console.log(items[idx].summary);
-" "$CAL_CHOICE" 2>/dev/null) || SECONDARY_CAL_NAME="$SECONDARY_CALENDAR_ID"
+" "$CAL_CHOICE" 2>/dev/null) || CAL_NAME="$CAL_ID"
 
-                SECONDARY_CALENDAR_ENABLED="true"
-                echo "Selected: $SECONDARY_CAL_NAME"
-            fi
+            SELECTED_IDS+=("$CAL_ID")
+            SELECTED_NAMES+=("$CAL_NAME")
+            SELECTED_COUNT=$((SELECTED_COUNT + 1))
+            echo "  Added: $CAL_NAME"
+        done
+
+        if [ "$SELECTED_COUNT" -gt 0 ]; then
+            # Join IDs with commas
+            SECONDARY_CALENDAR_IDS=$(IFS=,; echo "${SELECTED_IDS[*]}")
+            SECONDARY_CALENDARS_ENABLED="true"
+            echo ""
+            echo "Selected $SELECTED_COUNT calendar(s):"
+            for name in "${SELECTED_NAMES[@]}"; do
+                echo "  - $name"
+            done
         else
-            echo "No secondary calendar selected."
+            echo "No additional calendars selected."
         fi
     else
-        echo "Could not fetch calendars. You can set GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID later."
+        echo "Could not fetch calendars. You can set GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_IDS later."
     fi
+elif [ -n "$SECONDARY_CALENDAR_IDS" ]; then
+    SECONDARY_CALENDARS_ENABLED="true"
+    echo "Using secondary calendars from environment: $SECONDARY_CALENDAR_IDS"
 else
     echo "Skipping calendar discovery (MCP server not authenticated yet)."
-    echo "You can set GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID later."
+    echo "You can set GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_IDS later."
 fi
 
 echo ""
@@ -246,8 +292,8 @@ if [ "$OS" = "Darwin" ]; then
         -e "s|{{ANTHROPIC_VERTEX_REGION}}|${VERTEX_REGION:-}|g" \
         -e "s|{{ANTHROPIC_VERTEX_PROJECT_ID}}|${VERTEX_PROJECT:-}|g" \
         -e "s|{{USER_EMAIL}}|${USER_EMAIL:-}|g" \
-        -e "s|{{SECONDARY_CALENDAR_ID}}|${SECONDARY_CALENDAR_ID:-}|g" \
-        -e "s|{{SECONDARY_CALENDAR_ENABLED}}|${SECONDARY_CALENDAR_ENABLED}|g" \
+        -e "s|{{SECONDARY_CALENDAR_IDS}}|${SECONDARY_CALENDAR_IDS:-}|g" \
+        -e "s|{{SECONDARY_CALENDARS_ENABLED}}|${SECONDARY_CALENDARS_ENABLED}|g" \
         "$TEMPLATE" > "$PLIST_PATH"
 
     # Load the agent
@@ -280,8 +326,8 @@ elif [ "$OS" = "Linux" ]; then
         -e "s|{{ANTHROPIC_VERTEX_REGION}}|${VERTEX_REGION:-}|g" \
         -e "s|{{ANTHROPIC_VERTEX_PROJECT_ID}}|${VERTEX_PROJECT:-}|g" \
         -e "s|{{USER_EMAIL}}|${USER_EMAIL:-}|g" \
-        -e "s|{{SECONDARY_CALENDAR_ID}}|${SECONDARY_CALENDAR_ID:-}|g" \
-        -e "s|{{SECONDARY_CALENDAR_ENABLED}}|${SECONDARY_CALENDAR_ENABLED}|g" \
+        -e "s|{{SECONDARY_CALENDAR_IDS}}|${SECONDARY_CALENDAR_IDS:-}|g" \
+        -e "s|{{SECONDARY_CALENDARS_ENABLED}}|${SECONDARY_CALENDARS_ENABLED}|g" \
         "$SERVICE_TEMPLATE" > "$SYSTEMD_DIR/google-tasks-agent.service"
 
     # Copy timer file
@@ -307,10 +353,10 @@ if [ "$AUTH_MODE" = "vertex" ]; then
 else
     echo "Auth mode:            Anthropic API key"
 fi
-if [ "$SECONDARY_CALENDAR_ENABLED" = "true" ]; then
-    echo "Secondary calendar:   $SECONDARY_CALENDAR_ID"
+if [ "$SECONDARY_CALENDARS_ENABLED" = "true" ]; then
+    echo "Secondary calendars:  $SECONDARY_CALENDAR_IDS"
 else
-    echo "Secondary calendar:   (none)"
+    echo "Secondary calendars:  (none)"
 fi
 echo "Config dir:           $CONFIG_DIR"
 echo "Logs dir:             $LOG_DIR"

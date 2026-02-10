@@ -5,8 +5,8 @@ from datetime import datetime, timedelta, timezone
 from .config import (
     CALENDAR_ENABLED,
     CALENDAR_LOOKAHEAD_DAYS,
-    SECONDARY_CALENDAR_ENABLED,
-    SECONDARY_CALENDAR_ID,
+    SECONDARY_CALENDARS_ENABLED,
+    SECONDARY_CALENDAR_IDS,
     GEMINI_NOTES_SENDER,
     HIGH_PRIORITY_SENDERS,
     MAX_EMAILS,
@@ -103,15 +103,19 @@ B. Fetch upcoming calendar events for context:
 """
 
     secondary_cal_instructions = ""
-    if SECONDARY_CALENDAR_ENABLED and SECONDARY_CALENDAR_ID:
-        secondary_cal_instructions = f"""
-C. Fetch secondary calendar events:
-   - Call calendar_list_events with calendarId="{SECONDARY_CALENDAR_ID}", timeMin="{time_min}", timeMax="{time_max}", maxResults=50
+    if SECONDARY_CALENDARS_ENABLED and SECONDARY_CALENDAR_IDS:
+        cal_steps = []
+        for i, cal_id in enumerate(SECONDARY_CALENDAR_IDS):
+            step_letter = chr(ord("C") + i)
+            cal_steps.append(f"""
+{step_letter}. Fetch secondary calendar events (calendar {i + 1}):
+   - Call calendar_list_events with calendarId="{cal_id}", timeMin="{time_min}", timeMax="{time_max}", maxResults=50
    - For each NEW event (not in the seen secondary calendar event IDs list):
      - Skip events with titles containing PTO, vacation, out of office, or OOO patterns
      - Create a Google Task with the event title and due date set to the event start date
-     - Notes should include "Source: Secondary Calendar\\nPriority: MEDIUM"
-"""
+     - Notes should include "Source: Secondary Calendar ({cal_id})\\nPriority: MEDIUM"
+""")
+        secondary_cal_instructions = "".join(cal_steps)
 
     starred_instructions = ""
     if STARRED_EMAILS_ENABLED:
@@ -197,7 +201,7 @@ Do NOT create action items for:
 - Generic Concur alerts (e.g., "expense report approved", "payment processed")
 
 STEP 3: PROCESS SECONDARY CALENDAR EVENTS
-{secondary_cal_instructions if SECONDARY_CALENDAR_ENABLED else "Secondary calendar processing is disabled. Skip this step."}
+{secondary_cal_instructions if SECONDARY_CALENDARS_ENABLED else "Secondary calendar processing is disabled. Skip this step."}
 {task_instructions}
 
 STEP 5: RETURN RESULTS

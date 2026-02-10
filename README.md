@@ -62,7 +62,7 @@ The install script will:
 
 1. **Detect authentication** — auto-detects Vertex AI or API key from your environment, or prompts you to choose
 2. **Ask for your email** — used to match your name in Gemini meeting note action items
-3. **Discover calendars** — uses the MCP server's existing Google OAuth tokens to fetch your calendars and lets you pick an optional secondary calendar for automatic task creation from its events
+3. **Discover calendars** — uses the MCP server's existing Google OAuth tokens to fetch your calendars and lets you pick up to 5 additional calendars for automatic task creation from their events
 4. **Install the package** — creates a virtual environment at `~/.google-tasks-agent/venv/`
 5. **Set up scheduling** — configures a launchd agent (macOS) or systemd timer (Linux) to run every 5 minutes
 
@@ -73,7 +73,7 @@ CLAUDE_CODE_USE_VERTEX=1 \
 ANTHROPIC_VERTEX_REGION=us-east5 \
 ANTHROPIC_VERTEX_PROJECT_ID=your-project-id \
 GOOGLE_TASKS_AGENT_USER_EMAIL=you@example.com \
-GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID=your-calendar-id@group.calendar.google.com \
+GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_IDS=cal1@group.calendar.google.com,cal2@group.calendar.google.com \
 scripts/install.sh
 ```
 
@@ -167,8 +167,8 @@ Vertex AI also requires [Application Default Credentials](https://cloud.google.c
 | `GOOGLE_TASKS_AGENT_TASK_LIST_ID` | *(empty)* | Direct task list ID (overrides name lookup) |
 | `GOOGLE_TASKS_AGENT_CALENDAR_ENABLED` | `true` | Include calendar events as context |
 | `GOOGLE_TASKS_AGENT_CALENDAR_DAYS` | `28` | Number of days to look ahead in calendar |
-| `GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ID` | *(empty)* | Secondary calendar ID for direct task creation from events |
-| `GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_ENABLED` | `false` | Enable secondary calendar task creation (requires calendar ID) |
+| `GOOGLE_TASKS_AGENT_SECONDARY_CALENDAR_IDS` | *(empty)* | Comma-separated calendar IDs for direct task creation from events (up to 5) |
+| `GOOGLE_TASKS_AGENT_SECONDARY_CALENDARS_ENABLED` | `false` | Enable secondary calendar task creation (requires calendar IDs) |
 | `GOOGLE_TASKS_AGENT_STARRED_ENABLED` | `true` | Process starred emails |
 | `GOOGLE_TASKS_AGENT_MAX_STARRED` | `20` | Number of starred emails to fetch |
 
