@@ -9,9 +9,10 @@ Every 5 minutes (when scheduled), the agent:
 1. Connects to the [google-mcp](https://github.com/brent-holden/google-mcp) server for Gmail, Calendar, and Tasks access
 2. Fetches recent inbox emails, Gemini meeting notes, starred emails, and upcoming calendar events
 3. Sends everything to Claude for analysis — it identifies action items, assigns priorities, infers due dates, and correlates emails with calendar events
-4. Creates Google Tasks for high-priority items, starred emails, meeting action items, and anything with a deadline
-5. Sends a desktop notification and appends to a markdown log
-6. Tracks seen message IDs so it only processes new emails on subsequent runs
+4. Reconciles new action items against existing open tasks to avoid duplicates
+5. Creates Google Tasks for high-priority items, starred emails, meeting action items, and anything with a deadline
+6. Sends a desktop notification and appends to a markdown log
+7. Tracks seen message IDs so it only processes new emails on subsequent runs
 
 ## Prerequisites
 
