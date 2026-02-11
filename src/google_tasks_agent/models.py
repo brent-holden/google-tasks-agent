@@ -19,6 +19,7 @@ class ActionItem:
     task_created: bool = False
     source_type: str = "email"  # email, gemini_notes, calendar_prep, starred
     related_meeting: Optional[str] = None
+    group: Optional[str] = None  # Parent group name if task was grouped
 
     def to_dict(self) -> dict:
         return asdict(self)

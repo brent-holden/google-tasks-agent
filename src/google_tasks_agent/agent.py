@@ -90,6 +90,7 @@ def parse_action_items(result: dict) -> list[ActionItem]:
                 task_created=item_data.get("task_created", False),
                 source_type=source_type,
                 related_meeting=item_data.get("related_meeting"),
+                group=item_data.get("group"),
             )
         )
 
@@ -190,6 +191,7 @@ async def run_agent(
                                     ],
                                 },
                                 "related_meeting": {"type": ["string", "null"]},
+                                "group": {"type": ["string", "null"]},
                             },
                             "required": [
                                 "id",
@@ -211,6 +213,7 @@ async def run_agent(
                             "tasks_created": {"type": "integer"},
                             "duplicates_skipped": {"type": "integer"},
                             "secondary_tasks_created": {"type": "integer"},
+                            "tasks_grouped": {"type": "integer"},
                         },
                         "required": [
                             "emails_scanned",
@@ -218,6 +221,7 @@ async def run_agent(
                             "tasks_created",
                             "duplicates_skipped",
                             "secondary_tasks_created",
+                            "tasks_grouped",
                         ],
                     },
                 },
@@ -263,7 +267,8 @@ async def run_agent(
         f"items={summary.get('action_items_found', 0)}, "
         f"tasks={summary.get('tasks_created', 0)}, "
         f"duplicates_skipped={summary.get('duplicates_skipped', 0)}, "
-        f"secondary_tasks={summary.get('secondary_tasks_created', 0)}"
+        f"secondary_tasks={summary.get('secondary_tasks_created', 0)}, "
+        f"grouped={summary.get('tasks_grouped', 0)}"
     )
 
     # Parse action items

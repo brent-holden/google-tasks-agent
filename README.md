@@ -10,9 +10,10 @@ Every 5 minutes (when scheduled), the agent:
 2. Fetches recent inbox emails, Gemini meeting notes, starred emails, and upcoming calendar events
 3. Sends everything to Claude for analysis — it identifies action items, assigns priorities, infers due dates, and correlates emails with calendar events
 4. Reconciles new action items against existing open tasks to avoid duplicates
-5. Creates Google Tasks for high-priority items, starred emails, meeting action items, and anything with a deadline
-6. Sends a desktop notification and appends to a markdown log
-7. Tracks seen message IDs so it only processes new emails on subsequent runs
+5. Groups related tasks as subtasks under parent tasks (by project, account, meeting, or email thread)
+6. Creates Google Tasks for high-priority items, starred emails, meeting action items, and anything with a deadline
+7. Sends a desktop notification and appends to a markdown log
+8. Tracks seen message IDs so it only processes new emails on subsequent runs
 
 ## Prerequisites
 
@@ -199,6 +200,14 @@ The agent skips newsletters, FYI notifications, action items assigned to other p
 ### Duplicate reconciliation
 
 Before creating new tasks, the agent fetches all open tasks from your Google Tasks list and checks for duplicates. A new action item is considered a duplicate if an existing task's title overlaps significantly with the new action text, or if the existing task's notes reference the same email ID. Duplicates are skipped and reported in the run summary.
+
+### Task grouping
+
+After deduplication, the agent groups related tasks as subtasks to keep your task list organized:
+
+- **Existing parents**: If an open parent task already exists that matches a new item's project, account, or initiative, the new task is created as a subtask under it.
+- **New groups**: If 2+ new action items from the same batch are related — same email thread, project, customer, meeting, or sender+topic — the agent creates a parent task with a descriptive name and nests the items as subtasks.
+- Single standalone items are left as top-level tasks. Grouping only applies when there are multiple related items.
 
 ## Project structure
 

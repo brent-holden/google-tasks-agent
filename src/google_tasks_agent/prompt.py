@@ -78,7 +78,8 @@ STEP 4: RECONCILE AND CREATE GOOGLE TASKS
    - Otherwise, call tasks_list_tasklists and find the list named "{TASKS_LIST_NAME}" (case-insensitive)
    - Fall back to the first available list if not found
 2. Fetch existing tasks by calling tasks_list_tasks with the task list ID (showCompleted=false).
-   Paginate if needed to get all open tasks.
+   Paginate if needed to get all open tasks. Note which tasks have a "parent" field (subtasks)
+   and which do not (top-level tasks). Build a map of the existing task hierarchy.
 3. For each action item with create_task=true, check for duplicates against the existing tasks:
    - Compare the action text against existing task titles using fuzzy matching:
      - Normalize both strings (lowercase, strip punctuation, collapse whitespace)
@@ -89,12 +90,33 @@ STEP 4: RECONCILE AND CREATE GOOGLE TASKS
           (ignore common words like: the, a, an, to, for, and, or, of, in, on, with, from, by, up)
    - If a duplicate is found, set create_task=false and task_created=false for that item
      and count it as a skipped duplicate
-4. For each remaining action item (not skipped), call tasks_create_task with:
-   - title: The action text (max 1000 chars)
-   - notes: "Source: [subject]\\nPriority: [priority]\\n\\nOpen email: https://mail.google.com/mail/u/0/#all/[email_id]"
-   - due: The due_date in RFC 3339 format (e.g., "2026-02-15T00:00:00.000Z") if available
-   - taskListId: The task list ID found above
-5. Record which tasks were created and which were skipped as duplicates."""
+4. GROUP RELATED TASKS as subtasks where possible:
+   a) Check if a new action item fits under an EXISTING top-level parent task:
+      - Compare the new item's subject, action text, and context against existing parent task titles
+      - A new item BELONGS under an existing parent if they share the same project, account,
+        customer name, initiative, or meeting series
+      - If a match is found, record the existing parent task's ID to use as the "parent" parameter
+   b) Check if 2+ NEW action items (from this batch) should be grouped together:
+      - Items are related if they share ANY of these:
+        - Same email thread (same subject line or email ID prefix)
+        - Same project or customer name in subject/action
+        - Same meeting (related_meeting field matches)
+        - Same sender discussing the same topic
+      - If 2+ items are related, create a NEW parent task first:
+        - Title: A short descriptive name for the group (e.g., "Citi Account Work", "Q1 Budget Review")
+        - No due date on the parent (subtask due dates are sufficient)
+      - Record the new parent task's ID to use as the "parent" parameter for the group members
+   c) Set the "group" field on each grouped action item to the parent task title (or null if ungrouped)
+5. Create tasks, respecting the grouping from step 4:
+   - Create parent tasks FIRST (if any new groups were formed in step 4b)
+   - Then create each remaining action item with tasks_create_task:
+     - title: The action text (max 1000 chars)
+     - notes: "Source: [subject]\\nPriority: [priority]\\n\\nOpen email: https://mail.google.com/mail/u/0/#all/[email_id]"
+     - due: The due_date in RFC 3339 format (e.g., "2026-02-15T00:00:00.000Z") if available
+     - parent: The parent task ID if this item was grouped (from step 4a or 4b), omit otherwise
+     - taskListId: The task list ID found above
+   - A single standalone item should NOT be grouped — only create parent tasks for 2+ related items
+6. Record which tasks were created, which were skipped as duplicates, and how many were grouped."""
     elif dry_run:
         task_instructions = """
 STEP 4: SKIP TASK CREATION (DRY RUN MODE)
@@ -194,6 +216,7 @@ For each action item, determine:
 - create_task: true/false
 - source_type: "email", "gemini_notes", "calendar_prep", or "starred"
 - related_meeting: Meeting name if applicable, or null
+- group: Parent group name if this item was grouped as a subtask, or null
 
 Set create_task to TRUE if ANY of these apply:
 - HIGH priority
@@ -231,7 +254,8 @@ Return your results as a JSON object with this exact structure:
       "create_task": true,
       "task_created": true,
       "source_type": "email",
-      "related_meeting": null
+      "related_meeting": null,
+      "group": "Q4 Budget Review"
     }}
   ],
   "summary": {{
@@ -239,7 +263,8 @@ Return your results as a JSON object with this exact structure:
     "action_items_found": 3,
     "tasks_created": 2,
     "duplicates_skipped": 1,
-    "secondary_tasks_created": 1
+    "secondary_tasks_created": 1,
+    "tasks_grouped": 2
   }}
 }}
 
