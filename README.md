@@ -183,6 +183,20 @@ Vertex AI also requires [Application Default Credentials](https://cloud.google.c
 | `~/.google-tasks-agent/logs/` | Rotating log files |
 | `~/.google-tasks-agent/venv/` | Python virtual environment (created by install script) |
 
+## Security
+
+### File permissions
+
+All files under `~/.google-tasks-agent/` contain data derived from your emails (message IDs, subjects, sender addresses, action items). The agent restricts permissions to owner-only access:
+
+- **Directories** (`~/.google-tasks-agent/`, `logs/`): mode `0700`
+- **State and log files** (`state.json`, `action-items.md`): mode `0600`
+- **Scheduler configs** (launchd plist, systemd service): mode `0600` — these contain your API key
+
+### Secrets
+
+The install script writes your `ANTHROPIC_API_KEY` (or Vertex AI config) into the generated launchd/systemd config files. These files are restricted to owner-only read/write. Avoid committing generated `.plist` or `.service` files to version control — the `.gitignore` excludes them by default.
+
 ## Action item detection
 
 The agent creates tasks automatically when any of these conditions are met:

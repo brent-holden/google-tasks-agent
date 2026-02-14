@@ -298,6 +298,9 @@ if [ "$OS" = "Darwin" ]; then
         -e "s|{{SECONDARY_CALENDARS_ENABLED}}|${SECONDARY_CALENDARS_ENABLED}|g" \
         "$TEMPLATE" > "$PLIST_PATH"
 
+    # Restrict plist permissions (contains API keys)
+    chmod 600 "$PLIST_PATH"
+
     # Load the agent
     launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH"
 
@@ -331,6 +334,9 @@ elif [ "$OS" = "Linux" ]; then
         -e "s|{{SECONDARY_CALENDAR_IDS}}|${SECONDARY_CALENDAR_IDS:-}|g" \
         -e "s|{{SECONDARY_CALENDARS_ENABLED}}|${SECONDARY_CALENDARS_ENABLED}|g" \
         "$SERVICE_TEMPLATE" > "$SYSTEMD_DIR/google-tasks-agent.service"
+
+    # Restrict service file permissions (contains API keys)
+    chmod 600 "$SYSTEMD_DIR/google-tasks-agent.service"
 
     # Copy timer file
     cp "$TIMER_TEMPLATE" "$SYSTEMD_DIR/google-tasks-agent.timer"

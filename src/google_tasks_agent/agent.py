@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
@@ -29,6 +30,7 @@ from .state import load_state, save_state
 def setup_logging(dry_run: bool = False) -> logging.Logger:
     """Configure logging to both file and stderr."""
     LOG_DIR.mkdir(parents=True, exist_ok=True)
+    os.chmod(LOG_DIR, 0o700)
 
     logger = logging.getLogger("google-tasks-agent")
     logger.handlers.clear()
@@ -336,6 +338,7 @@ def main():
         logger.info("FORCE MODE - processing all emails")
 
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    os.chmod(CONFIG_DIR, 0o700)
 
     try:
         asyncio.run(run_agent(dry_run=args.dry_run, force=args.force, logger=logger))

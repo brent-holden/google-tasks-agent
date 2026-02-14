@@ -1,10 +1,25 @@
 """Configuration constants and environment variable handling."""
 
+import logging
 import os
 from pathlib import Path
 
 # Platform detection
 import platform
+
+logger = logging.getLogger("google-tasks-agent")
+
+
+def _int_env(name: str, default: int) -> int:
+    """Parse an integer from an environment variable, falling back to default."""
+    raw = os.environ.get(name, "")
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning(f"Invalid integer for {name}={raw!r}, using default {default}")
+        return default
 
 IS_MACOS = platform.system() == "Darwin"
 IS_LINUX = platform.system() == "Linux"
@@ -23,7 +38,7 @@ GOOGLE_MCP_SERVER_PATH = os.environ.get(
 )
 
 # Email configuration
-MAX_EMAILS = int(os.environ.get("GOOGLE_TASKS_AGENT_MAX_EMAILS", "20"))
+MAX_EMAILS = _int_env("GOOGLE_TASKS_AGENT_MAX_EMAILS", 20)
 MAX_SEEN_IDS = 500
 
 # Google Tasks configuration
@@ -34,9 +49,7 @@ TASKS_LIST_NAME = os.environ.get("GOOGLE_TASKS_AGENT_TASK_LIST", "Work Tasks")
 TASKS_LIST_ID = os.environ.get("GOOGLE_TASKS_AGENT_TASK_LIST_ID", "")
 
 # Calendar configuration
-CALENDAR_LOOKAHEAD_DAYS = int(
-    os.environ.get("GOOGLE_TASKS_AGENT_CALENDAR_DAYS", "28")
-)
+CALENDAR_LOOKAHEAD_DAYS = _int_env("GOOGLE_TASKS_AGENT_CALENDAR_DAYS", 28)
 CALENDAR_ENABLED = (
     os.environ.get("GOOGLE_TASKS_AGENT_CALENDAR_ENABLED", "true").lower() == "true"
 )
@@ -58,7 +71,7 @@ GEMINI_NOTES_SENDER = "gemini-notes@google.com"
 STARRED_EMAILS_ENABLED = (
     os.environ.get("GOOGLE_TASKS_AGENT_STARRED_ENABLED", "true").lower() == "true"
 )
-MAX_STARRED_EMAILS = int(os.environ.get("GOOGLE_TASKS_AGENT_MAX_STARRED", "20"))
+MAX_STARRED_EMAILS = _int_env("GOOGLE_TASKS_AGENT_MAX_STARRED", 20)
 
 # User email for name matching in Gemini notes
 USER_EMAIL = os.environ.get("GOOGLE_TASKS_AGENT_USER_EMAIL", "")

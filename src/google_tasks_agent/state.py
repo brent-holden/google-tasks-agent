@@ -1,6 +1,7 @@
 """State management for tracking seen messages and events."""
 
 import json
+import os
 import tempfile
 from pathlib import Path
 
@@ -27,6 +28,8 @@ def load_state() -> dict:
 def save_state(state: dict) -> None:
     """Save state to file atomically, keeping only recent IDs."""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    # Restrict config directory to owner only (contains PII from emails)
+    os.chmod(CONFIG_DIR, 0o700)
 
     # Limit the number of stored IDs to prevent unbounded growth
     if len(state.get("seen_message_ids", [])) > MAX_SEEN_IDS:
@@ -41,4 +44,6 @@ def save_state(state: dict) -> None:
     ) as f:
         json.dump(state, f, indent=2)
         temp_path = Path(f.name)
+    # Restrict state file to owner only before moving into place
+    os.chmod(temp_path, 0o600)
     temp_path.rename(STATE_FILE)

@@ -3,3 +3,25 @@ __pycache__/
 build/
 dist/
 *.pyc
+
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+tokens.json
+credentials.json
+client_credentials.json
+application_default_credentials.json
+
+# Generated scheduler configs (may contain API keys)
+*.plist
+!templates/*.template
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

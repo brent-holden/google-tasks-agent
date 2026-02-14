@@ -1,6 +1,7 @@
 """Markdown action items log."""
 
 import logging
+import os
 from datetime import datetime
 
 from .config import ACTION_ITEMS_FILE
@@ -17,7 +18,10 @@ def append_to_action_log(action_items: list[ActionItem]) -> None:
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     if not ACTION_ITEMS_FILE.exists():
-        with open(ACTION_ITEMS_FILE, "w") as f:
+        with open(
+            os.open(ACTION_ITEMS_FILE, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600),
+            "w",
+        ) as f:
             f.write("# Email Action Items Log\n\n")
             f.write("This file tracks action items extracted from emails.\n\n")
             f.write("---\n\n")

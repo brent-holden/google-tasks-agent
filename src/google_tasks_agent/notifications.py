@@ -9,6 +9,20 @@ from .models import ActionItem
 logger = logging.getLogger("google-tasks-agent")
 
 
+def _escape_applescript_string(text: str) -> str:
+    """Escape a string for safe use inside AppleScript double-quoted strings.
+
+    Handles all AppleScript escape sequences to prevent injection when
+    embedding untrusted data (e.g. email subjects) into AppleScript strings.
+    """
+    text = text.replace("\\", "\\\\")
+    text = text.replace('"', '\\"')
+    text = text.replace("\n", "\\n")
+    text = text.replace("\r", "\\r")
+    text = text.replace("\t", "\\t")
+    return text
+
+
 def send_notification(action_items: list[ActionItem]) -> None:
     """Send desktop notification with action items summary."""
     if not action_items:
@@ -37,12 +51,8 @@ def send_notification(action_items: list[ActionItem]) -> None:
 
     try:
         if IS_MACOS:
-            safe_message = (
-                message.replace("\\", "\\\\")
-                .replace('"', '\\"')
-                .replace("\n", "\\n")
-            )
-            safe_title = title.replace("\\", "\\\\").replace('"', '\\"')
+            safe_message = _escape_applescript_string(message)
+            safe_title = _escape_applescript_string(title)
             script = f'display notification "{safe_message}" with title "{safe_title}" sound name "Glass"'
             subprocess.run(
                 ["osascript", "-e", script],
